@@ -1,4 +1,4 @@
-#include "Repo.h"
+#include "Archive.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,10 +8,10 @@
 #include <assert.h> // assert
 #include <errno.h> // errno
 
-struct repo {
+struct archive {
     char* wt_path;
     char* arc_path; // worktree/.arc
-}; // in Repo.h: typedef struct repo Repo;
+}; // in Archive.h: typedef struct archive Archive;
 
 // relative path to absolute path
 // assumes from > to
@@ -33,24 +33,31 @@ void _mkdir(const char* dir) {
     for (p = buf + 1; *p; p++)
         if (*p == '/') {
             *p = 0;
-            mkdir(buf, S_IRWXU);
+            if (mkdir(buf, S_IRWXU) == -1) {
+                if (errno != EEXIST) {
+                    perror("could not initialize archive");
+                    exit(1);
+                }
+            }
             *p = '/';
         }
     mkdir(buf, S_IRWXU);
 }
 
-void repo_mkdir(Repo* repo, const char* rpath) {
+void archive_mkdir(Archive* archive, const char* rpath) {
     char apath[256];
-    get_path(repo->arc_path, rpath, apath);
+    get_path(archive->arc_path, rpath, apath);
     _mkdir(apath);
 }
 
-Repo* repo_init(const char* path) {
+Archive* archive_init(const char* path) {
+    // char path[256];
+    // getcwd(path, 256);
     // Calculate archive path
     char tmp_arc_path[256];
     get_path(path, ".arc", tmp_arc_path);
 
-    // If repository already exists at path return NULL
+    // If archivesitory already exists at path return NULL
     struct stat s;
     int err = stat(tmp_arc_path, &s);
     if (err == 0) {
@@ -61,22 +68,22 @@ Repo* repo_init(const char* path) {
     }
 
     // Allocate space and initialize members
-    Repo* new_repo = malloc(sizeof(Repo));
-    new_repo->wt_path = malloc(sizeof(char*));
-    memcpy(new_repo->wt_path, path, strlen(path));
-    new_repo->arc_path = malloc(sizeof(char*));
-    memcpy(new_repo->arc_path, tmp_arc_path, strlen(tmp_arc_path));
+    Archive* new_arc = malloc(sizeof(Archive));
+    new_arc->wt_path = strdup(path);
+    // memcpy(new_arc->wt_path, path, strlen(path));
+    new_arc->arc_path = strdup(tmp_arc_path);
+    // memcpy(new_arc->arc_path, tmp_arc_path, strlen(tmp_arc_path));
 
     // Create directories in ./.arc
-    repo_mkdir(new_repo, "branches");
-    repo_mkdir(new_repo, "objects");
-    repo_mkdir(new_repo, "refs/tags");
-    repo_mkdir(new_repo, "refs/heads");
+    archive_mkdir(new_arc, "branches");
+    archive_mkdir(new_arc, "objects");
+    archive_mkdir(new_arc, "refs/tags");
+    archive_mkdir(new_arc, "refs/heads");
     
-    return new_repo;
+    return new_arc;
 }
 
 
 
 
-// TODO: Delete repo prevent memory leak B)
+// TODO: Delete archive prevent memory leak B)

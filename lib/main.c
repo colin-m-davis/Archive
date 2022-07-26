@@ -1,15 +1,11 @@
 #include <unistd.h> // getcwd
+#include <stdio.h>
 
-#include "Repo.c"
-
-#include "Compress.c"
+#include "Archive.c"
+#include "Item.c"
 
 int main(int argc, char* argv[]) {
-    char cwd[256];
-    getcwd(cwd, 256);
-    Repo * reap = repo_init(cwd);
-    object_read(reap, ":)HAHAHjfioggggoHAHAHAH");
-
+    Archive* arch = archive_init("/Users/<redacted>/aghhhhhhhhh");
     return 0;
 }
 
