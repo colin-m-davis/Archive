@@ -5,7 +5,7 @@
 #include "Item.c"
 
 int main(int argc, char* argv[]) {
-    Archive* arch = archive_init("/Users/<redacted>/aghhhhhhhhh");
+
     return 0;
 }
 

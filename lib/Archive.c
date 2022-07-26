@@ -50,22 +50,38 @@ void archive_mkdir(Archive* archive, const char* rpath) {
     _mkdir(apath);
 }
 
+Archive* archive_get(const char* path) {
+    char check_arc_path[256];
+    get_path(path, ".arc", check_arc_path);
+
+    struct stat s;
+    int err = stat(check_arc_path, &s);
+    if (err == 0) {
+        if(S_ISDIR(s.st_mode)) {
+            Archive* got_arc = malloc(sizeof(Archive));
+            got_arc->wt_path = strdup(path);
+            // memcpy(new_arc->wt_path, path, strlen(path));
+            got_arc->arc_path = strdup(check_arc_path);
+            return got_arc;
+        }
+    } else {
+        return NULL;
+    }
+}
+
 Archive* archive_init(const char* path) {
     // char path[256];
     // getcwd(path, 256);
     // Calculate archive path
+
+    Archive* check = archive_get(path);
+    if (check != NULL) {
+        fprintf(stderr, "detected existing archive in path\n");
+        return check;
+    }
+
     char tmp_arc_path[256];
     get_path(path, ".arc", tmp_arc_path);
-
-    // If archivesitory already exists at path return NULL
-    struct stat s;
-    int err = stat(tmp_arc_path, &s);
-    if (err == 0) {
-        if(S_ISDIR(s.st_mode)) {
-            fprintf(stderr, "could not initialize archive: .arc directory already exists in path");
-            exit(1);
-        }
-    }
 
     // Allocate space and initialize members
     Archive* new_arc = malloc(sizeof(Archive));
@@ -76,7 +92,7 @@ Archive* archive_init(const char* path) {
 
     // Create directories in ./.arc
     archive_mkdir(new_arc, "branches");
-    archive_mkdir(new_arc, "objects");
+    archive_mkdir(new_arc, "items");
     archive_mkdir(new_arc, "refs/tags");
     archive_mkdir(new_arc, "refs/heads");
     
