@@ -1,17 +1,15 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h> // getcwd
-#include <sys/stat.h> // mkdir
-#include <string.h> // strncat
-#include <errno.h> // ENOENT
-#include <assert.h>
 
 #include "Repo.c"
+
+#include "Compress.c"
 
 int main(int argc, char* argv[]) {
     char cwd[256];
     getcwd(cwd, 256);
     Repo * reap = repo_init(cwd);
+    object_read(reap, ":)HAHAHjfioggggoHAHAHAH");
+
     return 0;
 }
 

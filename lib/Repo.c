@@ -1,14 +1,17 @@
 #include "Repo.h"
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h> // strlen
 #include <unistd.h> // getcwd
 #include <sys/stat.h> // mkdir
 #include <assert.h> // assert
+#include <errno.h> // errno
 
 struct repo {
     char* wt_path;
     char* arc_path; // worktree/.arc
-};
+}; // in Repo.h: typedef struct repo Repo;
 
 // relative path to absolute path
 // assumes from > to
@@ -36,7 +39,7 @@ void _mkdir(const char* dir) {
     mkdir(buf, S_IRWXU);
 }
 
-void repo_dir(Repo* repo, const char* rpath) {
+void repo_mkdir(Repo* repo, const char* rpath) {
     char apath[256];
     get_path(repo->arc_path, rpath, apath);
     _mkdir(apath);
@@ -64,14 +67,11 @@ Repo* repo_init(const char* path) {
     new_repo->arc_path = malloc(sizeof(char*));
     memcpy(new_repo->arc_path, tmp_arc_path, strlen(tmp_arc_path));
 
-    // Shorthand for new repo's members
-    char* wt = new_repo->wt_path;
-    char* arc = new_repo->arc_path;
-
-    repo_dir(new_repo, "branches");
-    repo_dir(new_repo, "objects");
-    repo_dir(new_repo, "refs/tags");
-    repo_dir(new_repo, "refs/heads");
+    // Create directories in ./.arc
+    repo_mkdir(new_repo, "branches");
+    repo_mkdir(new_repo, "objects");
+    repo_mkdir(new_repo, "refs/tags");
+    repo_mkdir(new_repo, "refs/heads");
     
     return new_repo;
 }
