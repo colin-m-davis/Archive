@@ -8,11 +8,6 @@
 #include <assert.h> // assert
 #include <errno.h> // errno
 
-struct archive {
-    char* wt_path;
-    char* arc_path; // worktree/.arc
-}; // in Archive.h: typedef struct archive Archive;
-
 // relative path to absolute path
 // assumes from > to
 // caller is responsible for allocating memory
@@ -35,7 +30,7 @@ void _mkdir(const char* dir) {
             *p = 0;
             if (mkdir(buf, S_IRWXU) == -1) {
                 if (errno != EEXIST) {
-                    perror("could not initialize archive");
+                    perror("could not make directory");
                     exit(1);
                 }
             }

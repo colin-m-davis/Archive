@@ -1,59 +1,47 @@
 #include "Item.h"
-
-#include "Archive.h"
 #include "zlib.h"
-#include "sha-256.c"
+#include "sha-256.h"
+#include "Hash.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <zlib.h>
 
 enum kind { Commit, Tree, Blob, Tag }; // in Object.h: typedef enum object Object
 struct item {
     Kind kind;
-    Archive* owner;
     char* data;
 };
 
-// Get SHA-256 hash of message as uint8 array
-void message_to_hash(uint8_t* out, const char* message) {
-    calc_sha_256(out, message, strlen(message)); // see sha-256.h
-}
+void item_write(uint8_t* out, Archive* arc, Item* item) {
+    long data_size = strlen(item->data);
+    uLong comp_bound = compressBound(data_size);
+    char compressed[11 + comp_bound];
+    snprintf(compressed, 10, "%lu", data_size);
+    compress((u_char*)compressed+10, &comp_bound, (u_char*)item->data, data_size);
 
-// For a standard 32-byte hash, produces a 65-char output including the final '\0'
-void hash_to_path(char* out, const Archive* arc, const uint8_t* hash) {
-    // Represent hash as hex string
-    char hash_str[65];
-    char* hsp = hash_str;
-    for (int i = 0; i < 32; i++) {
-        hsp += sprintf(hash_str, "%.2x", hash[i]);
+    // generate hash
+    uint8_t hash[32];
+    message_to_hash(hash, compressed);
+
+    // get file_path from hash
+    char file_path[256]; 
+    hash_to_path(file_path, arc, hash);   
+
+    FILE* item_file = fopen(file_path, "w+");
+    if (item_file == NULL) {
+        fprintf(stderr, "could not write item file.");
+        exit(1);
     }
 
-    // Folder name is first 2 chars
-    char first_two[3];
-    strncpy(first_two, hash_str, 2);
-
-    // File name is the subsequent 30 chars
-    char rest[31];
-    strncpy(rest, hash_str + 2, 30);
-
-    // Construct file path
-    snprintf(out, 256, "%s/%s/%s/%s", arc->arc_path, "items", first_two, rest);
-}
-
-void item_write(Item* item, uint8_t* hash, const char* data) {
-    char* serialized;
-    item_serialize(serialized, item);
-
-    // TODO: a lot
-
-    // insert original filesize as long at beginning of buffer. makes reading later easier!
+    fwrite(compressed, data_size+11, 1, item_file);
 }
 
 void item_read(Item* out, Archive* arc, uint8_t* hash) {
     // Represent hash in a string of hex values
     char file_path[256]; 
     hash_to_path(file_path, arc, hash);
-
 
     // Open file at file path
     FILE* item_file = fopen(file_path, "rb");
@@ -64,61 +52,58 @@ void item_read(Item* out, Archive* arc, uint8_t* hash) {
 
     // Get file size
     fseek(item_file, 0, SEEK_END);
-    size_t raw_size = ftell(item_file);
+    long raw_size = ftell(item_file);
     rewind(item_file);
 
     // Allocate memory for char buffer
-    char* raw_buf;
-    raw_buf = malloc((raw_size + 1) * sizeof(*raw_buf));
+    char raw_buf[raw_size+1];
 
     // Read file contents into buffer and terminate it with '\0'
     fread(raw_buf, raw_size, 1, item_file);
     raw_buf[raw_size] = 0;
 
     // Get size of original data
+    // Maximum # digits for ulong in dec representation is 10
+    char og_size_buf[11];
+    snprintf(og_size_buf, 10, "%s", raw_buf);
+    u_long og_size = strtoul(og_size_buf, NULL, 10);
 
-    
     // Uncompress contents of buffer
-    char* buf;
-    size_t size = 
-    buf = malloc(size * sizeof(*buf));
-    free(raw_buf);
+    char og_buf[og_size];
+    uncompress((u_char*)og_buf, &og_size, (u_char*)raw_buf+10, raw_size);
 
-    // Parse them
-
-    //
+    printf(og_buf);
 }
 
+// void item_serialize(char** out, const Item* item) {
+//     switch(item->kind) {
+//         case Commit:
+//             break;
+//         case Tree:
+//             break;
+//         case Blob:
+//             blob_serialize(out, item);
+//             break;
+//         case Tag:
+//             break;
+//     }
+// }
 
-void item_serialize(char** out, const Item* item) {
-    switch(item->kind) {
-        case Commit:
-            break;
-        case Tree:
-            break;
-        case Blob:
-            blob_serialize(out, item);
-            break;
-        case Tag:
-            break;
-    }
-}
+// void commit_serialize(char** out, const Item* item) {
 
-void commit_serialize(char** out, const Item* item) {
+// }
 
-}
+// void commit_deserialize(Item* item, const char* in) {
 
-void commit_deserialize(Item* item, const char* in) {
+// }
 
-}
+// void blob_serialize(char** out, const Item* item) {
+//     *out = strndup(item->data, strlen(item->data));
+// }
 
-void blob_serialize(char** out, const Item* item) {
-    *out = strndup(item->data, strlen(item->data));
-}
-
-void blob_deserialize(Item* item, const char* in) {
-    item->data =strndup(in, strlen(in));
-}
+// void blob_deserialize(Item* item, const char* in) {
+//     item->data =strndup(in, strlen(in));
+// }
 
 
 
