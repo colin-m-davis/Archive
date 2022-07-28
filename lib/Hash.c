@@ -8,8 +8,8 @@ void message_to_hash(uint8_t* out, const char* message) {
     calc_sha_256(out, message, strlen(message)); // see sha-256.h
 }
 
-// Path for hash in Archive
-void hash_to_path(char* out, const Archive* arc, const uint8_t* hash) {
+// Path for folder and file from hash in Archive
+void hash_to_path(char* out_file, char* out_dir, const Archive* arc, const uint8_t* hash) {
     // Represent hash as hex string
     char hash_str[65];
     int offset = 0;
@@ -26,5 +26,6 @@ void hash_to_path(char* out, const Archive* arc, const uint8_t* hash) {
     snprintf(rest, 31, "%s", hash_str+2);
 
     // Construct file path
-    snprintf(out, 256, "%s/%s/%s/%s", arc->arc_path, "items", first_two, rest);
+    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "items", first_two);
+    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "items", first_two, rest);
 }

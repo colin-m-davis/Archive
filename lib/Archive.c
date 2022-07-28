@@ -11,7 +11,7 @@
 // relative path to absolute path
 // assumes from > to
 // caller is responsible for allocating memory
-void get_path(const char* from, const char* to, char buf[256]) {
+void get_path(const char* from, const char* to, char* buf) {
     snprintf(buf, 256, "%s%s%s", from, "/", to);
 }
 
