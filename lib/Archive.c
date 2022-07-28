@@ -12,7 +12,7 @@
 // assumes from > to
 // caller is responsible for allocating memory
 void get_path(const char* from, const char* to, char* buf) {
-    snprintf(buf, 256, "%s%s%s", from, "/", to);
+    snprintf(buf, 256, "%s/%s", from, to);
 }
 
 // $ mkdir -p dir
@@ -55,13 +55,11 @@ Archive* archive_get(const char* path) {
         if(S_ISDIR(s.st_mode)) {
             Archive* got_arc = malloc(sizeof(Archive));
             got_arc->wt_path = strdup(path);
-            // memcpy(new_arc->wt_path, path, strlen(path));
             got_arc->arc_path = strdup(check_arc_path);
             return got_arc;
         }
-    } else {
-        return NULL;
     }
+    return NULL;
 }
 
 Archive* archive_init(const char* path) {
