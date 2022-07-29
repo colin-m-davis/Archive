@@ -85,7 +85,7 @@ Archive* archive_init(const char* path) {
 
     // Create directories in ./.arc
     archive_mkdir(new_arc, "branches");
-    archive_mkdir(new_arc, "items");
+    archive_mkdir(new_arc, "logs");
     archive_mkdir(new_arc, "refs/tags");
     archive_mkdir(new_arc, "refs/heads");
     

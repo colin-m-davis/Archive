@@ -26,7 +26,7 @@ static inline uint32_t right_rot(uint32_t value, unsigned int count)
 
 /*
  * @brief Update a hash value under calculation with a new chunk of data.
- * @param h Pointer to the first hash item, of a total of eight.
+ * @param h Pointer to the first hash log, of a total of eight.
  * @param p Pointer to the chunk data, which has a standard length.
  *
  * @note This is the SHA-256 work horse.

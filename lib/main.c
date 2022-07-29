@@ -1,11 +1,10 @@
 #include <unistd.h> // getcwd
 #include <stdio.h>
 
-#include "Queue.c"
+#include "LogReadWrite.c"
+#include "Archive.c"
+
 
 int main(void) {
-
-
-    return 1;
 }
 

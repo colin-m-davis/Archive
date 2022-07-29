@@ -26,6 +26,6 @@ void hash_to_path(char* out_file, char* out_dir, const Archive* arc, const uint8
     snprintf(rest, 31, "%s", hash_str+2);
 
     // Construct file path
-    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "items", first_two);
-    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "items", first_two, rest);
+    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "logs", first_two);
+    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "logs", first_two, rest);
 }
