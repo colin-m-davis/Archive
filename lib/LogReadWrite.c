@@ -37,7 +37,7 @@ void log_write(uint8_t *out, Archive *arc, char *data, size_t data_size) {
     free(ostream);
 }
 
-void log_read(uint8_t *uncompressed, size_t *data_size_out, Archive *arc, uint8_t *hash) {
+uint8_t* log_read(size_t *data_size_out, Archive *arc, uint8_t *hash) {
     // Represent hash in a string of hex values
     char dir_path[256];
     char file_path[256]; 
@@ -56,12 +56,13 @@ void log_read(uint8_t *uncompressed, size_t *data_size_out, Archive *arc, uint8_
     u_char *ostream = malloc(raw_size);
     fread(ostream, 1, raw_size, log_file);
     *data_size_out = *((uLongf *) ostream);
-    *uncompressed = malloc(*data_size_out);
+    uint8_t *uncompressed = malloc(*data_size_out);
     Bytef *compressed = ostream + sizeof(uLongf);
 
     // Uncompress ostream to log data
     int res = uncompress(uncompressed, data_size_out, compressed, raw_size);
     fclose(log_file);
     free(ostream);
-    free(uncompressed);
+
+    return uncompressed;
 }
