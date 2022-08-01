@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 // Get SHA-256 hash of message as uint8 array
-void message_to_hash(uint8_t* out, const char* message) {
-    calc_sha_256(out, message, strlen(message)); // see sha-256.h
+void message_to_hash(uint8_t* out, const uint8_t* message, size_t data_size) {
+    calc_sha_256(out, message, data_size); // see sha-256.h
 }
 
 // Path for folder and file from hash in Archive

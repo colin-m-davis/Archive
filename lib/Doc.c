@@ -1,9 +1,13 @@
 #include "Archive.h"
 #include <dirent.h>
-#include "LogReadWrite.h"
 #include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h> // errno
+#include "Hash.h"
+#include <stdlib.h>
+
+#include "zpipe.c"
 
 #define _MAX_RESULTS 1024
 
@@ -17,11 +21,8 @@ void scan(const char *base_path, char **results, size_t *size) {
     // BFS
     while ((dp = readdir(dir)) != NULL) {
         if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".arc") != 0) { // avoid certain dirs
-            snprintf(path, 256, "%s/%s", base_path, dp->d_name);
-            printf(path);
-            printf("\n");
             results[*size] = malloc(256 * sizeof(char));
-            strcpy(results[*size], path);
+            snprintf(results[*size], 128, "%s/%s", base_path, dp->d_name);
             ++(*size);
             scan(path, results, size);
         }
@@ -33,36 +34,86 @@ void scan(const char *base_path, char **results, size_t *size) {
 // this is a big one
 void archive_doc(Archive* arc) {
     char **results;
-    results = malloc(_MAX_RESULTS * sizeof(char *)); // max results 1024 for now
+    results = malloc(_MAX_RESULTS * sizeof(char *));
     size_t num_results = 0;
     scan(arc->wt_path, results, &num_results);
 
-    for (int i=0; i<num_results; ++i) {
-        const char* path = results[i];
-        FILE *file = fopen(path, "r");
-        assert(file != NULL);
+    uint8_t **hashes;
+    hashes = malloc(num_results);
+
+    // Iterate over results to write blobs and collect hashes
+    int i;
+    for (i=0; i<num_results; ++i) {
+        // Compression source
+        const char* source_path = results[i];
+        FILE *src_file = fopen(source_path, "rb");
+        assert(src_file != NULL);
 
         // Get file size
-        fseek(file, 0, SEEK_END);
-        long file_size = ftell(file);
-        rewind(file);
+        fseek(src_file, 0, SEEK_END);
+        long file_size = ftell(src_file);
+        rewind(src_file);
 
-        char* ostream = malloc(file_size);
-        fread(ostream, 1, file_size, file);
-        fclose(file);
+        // Read file
+        uint8_t* ostream = malloc(file_size);
+        fread(ostream, 1, file_size, src_file);
+        fclose(src_file);
 
+        // Hash contents, get path
         uint8_t hash[32];
-        uint8_t* hp = hash;
-        log_write(hp, arc, ostream, file_size);
-
-        printf(path);
-        printf(":D\n\n");
+        message_to_hash(hash, ostream, file_size);
         free(ostream);
 
-        size_t ds = 0;
-        uint8_t* okay = log_read(&ds, arc, hash);
+        char dest_path[86];
+        char dest_fpath[94];
+        hash_to_path(dest_fpath, dest_path, arc, hash);
 
+        // Create file at path
+        int err = mkdir(dest_path, S_IRWXU);
+        if (err != 0 && errno != EEXIST) {
+            perror("Error: dest folder");
+        }
+        src_file = fopen(source_path, "rb");
+        FILE *dst_file = fopen(dest_fpath, "wb+");
+        assert(dst_file != NULL);
 
-        int x = 5; // :S
+        int deflate_success = def(src_file, dst_file, 8);
+        zerr(deflate_success);
+        if (deflate_success != 0) {
+            perror("Error compression");
+
+        }
+
+        fclose(src_file);
+        fclose(dst_file);
+
+        // Store hash
+        printf(source_path);
+        printf("\n");
+        printf(dest_fpath);
+        printf("\n");
+        free(results[i]);
     }
+
+    // commmit sudoku
+    
+    assert(i == num_results);
+
+    free(results);
+    free(hashes);
 }
+
+// FILE* deest_file = fopen(dest_fpath, "rb");
+// assert(deest_file != NULL);
+
+// FILE* new_file = fopen("/Users/colindavis/Code/yeet", "wb+");
+// assert(new_file != NULL);
+
+// int inflate_success = inf(deest_file, new_file);
+// zerr(inflate_success);
+// if (inflate_success != 0) {
+//     perror("Error decompression");
+// }
+
+// fclose(deest_file);
+// fclose(new_file);

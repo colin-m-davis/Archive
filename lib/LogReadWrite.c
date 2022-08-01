@@ -9,25 +9,31 @@
 #include <stdio.h>
 #include <string.h>
 
-
-void log_write(uint8_t *out, Archive *arc, char *data, size_t data_size) {
-    // Bytef *istream = serialize(log);
-    Bytef *istream = (Bytef*)data;
-    uLongf destLen = compressBound(data_size);
-    Bytef *ostream = malloc(destLen);
-    int res = compress(ostream + sizeof(uLongf), &destLen, istream, data_size);
-    *((uLongf *)ostream) = data_size;
-
+void log_write(uint8_t *out, Archive *arc, const uint8_t *data, size_t data_size) {
     // Generate hash
-    message_to_hash(out, data);
-
+    message_to_hash(out, data, data_size);
     // Construct path from hash
     char dir_path[256];
     char file_path[256]; 
     hash_to_path(file_path, dir_path, arc, out);  
     _mkdir(dir_path); 
+    
+    // Check if log with this hash already exists in archive
+    FILE *file_check = fopen(file_path, "rb");
+    if (file_check != NULL) {
+        // Close file and return without updating file
+        fclose(file_check);
+        return;
+    }
+    
+    // Bytef *istream = serialize(log);
+    Bytef *istream = (Bytef*)data;
+    uLongf destLen = compressBound(data_size);
+    Bytef *ostream = calloc(destLen + 1 + sizeof(uLongf), sizeof(Bytef));
+    int res = compress(ostream + sizeof(uLongf), &destLen, istream, data_size);
+    *((uLongf *)ostream) = data_size;
 
-    // Open file (create if it does not yet exist)
+    // Create file
     FILE *log_file = fopen(file_path, "wb+");
     assert(log_file != NULL);
 
@@ -56,7 +62,7 @@ uint8_t* log_read(size_t *data_size_out, Archive *arc, uint8_t *hash) {
     u_char *ostream = malloc(raw_size);
     fread(ostream, 1, raw_size, log_file);
     *data_size_out = *((uLongf *) ostream);
-    uint8_t *uncompressed = malloc(*data_size_out);
+    uint8_t *uncompressed = calloc(*data_size_out + 1, 1);
     Bytef *compressed = ostream + sizeof(uLongf);
 
     // Uncompress ostream to log data

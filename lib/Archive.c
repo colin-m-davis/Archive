@@ -63,10 +63,7 @@ Archive* archive_get(const char* path) {
 }
 
 Archive* archive_init(const char* path) {
-    // char path[256];
-    // getcwd(path, 256);
     // Calculate archive path
-
     Archive* check = archive_get(path);
     if (check != NULL) {
         fprintf(stderr, "detected existing archive in path\n");
@@ -79,9 +76,7 @@ Archive* archive_init(const char* path) {
     // Allocate space and initialize members
     Archive* new_arc = malloc(sizeof(Archive));
     new_arc->wt_path = strdup(path);
-    // memcpy(new_arc->wt_path, path, strlen(path));
     new_arc->arc_path = strdup(tmp_arc_path);
-    // memcpy(new_arc->arc_path, tmp_arc_path, strlen(tmp_arc_path));
 
     // Create directories in ./.arc
     archive_mkdir(new_arc, "branches");
