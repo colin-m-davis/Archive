@@ -4,7 +4,7 @@
 #include "Doc.c"
 #include "Archive.c"
 #include "Hash.c"
-
+#include "zlib.h"
 
 int main(void) {
     Archive* arc = archive_init(".");

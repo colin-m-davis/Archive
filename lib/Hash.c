@@ -12,20 +12,20 @@ void message_to_hash(uint8_t* out, const uint8_t* message, size_t data_size) {
 void hash_to_path(char* out_file, char* out_dir, const Archive* arc, const uint8_t* hash) {
     // Represent hash as hex string
     char hash_str[65];
-    int offset = 0;
+    int ofset = 0;
     for (int i = 0; i < 32; i++) {
-        offset += snprintf(hash_str + offset, 65-(offset), "%.2x", hash[i]);
+        ofset += snprintf(hash_str + ofset, 65-(ofset), "%.2x", hash[i]);
     }
 
     // Folder name is first 2 chars
-    char first_two[3];
-    snprintf(first_two, 3, "%s", hash_str);
+    char first_four[5];
+    snprintf(first_four, 5, "%s", hash_str);
 
     // File name is the subsequent 30 chars
-    char rest[31];
-    snprintf(rest, 31, "%s", hash_str+2);
+    char rest[61];
+    snprintf(rest, 60, "%s", hash_str+4);
 
     // Construct file path
-    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "logs", first_two);
-    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "logs", first_two, rest);
+    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "logs", first_four);
+    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "logs", first_four, rest);
 }
