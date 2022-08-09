@@ -6,13 +6,12 @@
 #include <errno.h> // errno
 #include "Hash.h"
 #include <stdlib.h>
+#include <time.h>
 
 #include "zpipe.c"
 
-#define _MAX_RESULTS 1024
 
 void scan(const char *base_path, char **results, size_t *size) {
-    if (*size >= _MAX_RESULTS * sizeof(char *)) { return; }
     // TODO: chunks
     char path[256];
     struct dirent *dp;
@@ -20,11 +19,11 @@ void scan(const char *base_path, char **results, size_t *size) {
     if (!dir) { return; }
     // BFS
     while ((dp = readdir(dir)) != NULL) {
-        if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".arc") != 0) { // avoid certain dirs
-            results[*size] = malloc(256 * sizeof(char));
-            snprintf(results[*size], 128, "%s/%s", base_path, dp->d_name);
-            snprintf(path, 128, "%s/%s", base_path, dp->d_name);
+        if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".arc") != 0) { // TODO: ignore from list
+            snprintf(path, 256, "%s/%s", base_path, dp->d_name);
+            results[*size] = strdup(path);
             ++(*size);
+            if (*size >= 800) { return; }
             scan(path, results, size);
         }
     }
@@ -32,21 +31,24 @@ void scan(const char *base_path, char **results, size_t *size) {
     closedir(dir);
 }
 
-// this is a big one
-void archive_doc(Archive* arc) {
+void archive_doc(Archive* arc, char* message) {
     // Open document buffer
-
     char **results;
-    results = malloc(_MAX_RESULTS * sizeof(char *));
+    results = malloc(1024 * sizeof(char *));
 
     size_t num_results = 0;
     scan(arc->wt_path, results, &num_results);
 
-    char document[64 + (352 * num_results)];
-    
+    char *document = malloc(64 + 512 * num_results);
+    if (document == NULL) {
+        fprintf(stderr, "Failed to allocate enough memory for document.");
+        exit(1);
+    }
+    snprintf(document, 33, "%s\n", message);
+    snprintf(document+33, 33, "%u\n", (unsigned)time(NULL));
     // Iterate over results to write blobs and collect hashes
     int i;
-    int docptr = 0; // index to print next filepath at 
+    int docptr = 67; // index to print next filepath at 
     for (i=0; i<num_results; ++i) {
         const char* src_path = results[i];
 
@@ -56,7 +58,6 @@ void archive_doc(Archive* arc) {
 
         // Compression source
         FILE *src_file = fopen(src_path, "rb");
-        assert(src_file != NULL);
 
         // Get file size
         fseek(src_file, 0, SEEK_END);
@@ -73,25 +74,28 @@ void archive_doc(Archive* arc) {
         message_to_hash(hash, ostream, file_size);
         free(ostream);
 
-        char dest_path[86];
-        char dest_fpath[94];
+        char dest_fpath[66];
+        char dest_path[5];
         hash_to_path(dest_fpath, dest_path, arc, hash);
+
+        char *full_dest_fpath = malloc(4096);
+        char *full_dest_path = malloc(4096);
+
+        snprintf(full_dest_fpath, 4096, "%s/logs/%s", arc->arc_path, dest_fpath);
+        snprintf(full_dest_path, 4096, "%s/logs/%s", arc->arc_path, dest_path);
 
         fprintf(stderr, "%s\n", src_path);
         // Create file at path
-        int err = mkdir(dest_path, S_IRWXU);
-        if (err != 0 && errno != EEXIST) {
-            perror("Error: dest folder");
-        }
+        _mkdir(full_dest_path);
         src_file = fopen(src_path, "rb");
 
-        if (access(dest_fpath, F_OK) == 0) {
+        if (access(full_dest_fpath, F_OK) == 0) {
             // File unmodified since last time, no need to overwrite
             fprintf(stderr, "%s\n", "Match");
         } else {
             // Compress and write file
             fprintf(stderr, "%s\n", "No match");
-            FILE *dst_file = fopen(dest_fpath, "wb+");
+            FILE *dst_file = fopen(full_dest_fpath, "wb+");
             assert(dst_file != NULL);
 
             int deflate_success = def(src_file, dst_file, 8);
@@ -100,22 +104,37 @@ void archive_doc(Archive* arc) {
             }
         }
 
+        free(full_dest_fpath);
+        free(full_dest_path);
+
         // Store hash
         size_t src_len = strlen(src_path);
         size_t dst_len = strlen(dest_fpath);
 
         snprintf(document + docptr, src_len+1, "%s", src_path);
-        docptr += src_len + 1;
-        snprintf(document + docptr, dst_len+1, "%s", dest_fpath);
-        docptr += dst_len + 1;
-        free(results[i]);
+        docptr += src_len;
+        snprintf(document + docptr, 2, "%s", "\n");
+        docptr++;
+        snprintf(document + docptr, dst_len+1, "%s", dest_fpath);    
+        docptr += dst_len;
+        snprintf(document + docptr, 2, "%s", "\n");
+        docptr++;
     }
+    uint8_t doc_hash[64];
+    message_to_hash(doc_hash, (uint8_t*)document, docptr);
+    char* temp = "./.arc/temp";
+    FILE *tmp_file = fopen(temp, "wb+");
+    fwrite(document, 1, docptr, tmp_file);
+    fclose(tmp_file);
+
+    tmp_file = fopen(temp, "rb");
+    fclose(tmp_file);
     
     assert(i == num_results);
-    printf(document);
     printf("\n");
     free(results);
 }
+
 
 // Test decompression to random file
 
@@ -136,4 +155,4 @@ void archive_doc(Archive* arc) {
 // fclose(deest_file);
 // fclose(new_file);
 
-// int x = 10000;
+// int x = 10000

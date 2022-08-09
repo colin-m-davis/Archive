@@ -19,13 +19,13 @@ void hash_to_path(char* out_file, char* out_dir, const Archive* arc, const uint8
 
     // Folder name is first 2 chars
     char first_four[5];
-    snprintf(first_four, 5, "%s", hash_str);
+    snprintf(first_four, 4, "%s", hash_str);
 
     // File name is the subsequent 30 chars
     char rest[61];
     snprintf(rest, 60, "%s", hash_str+4);
 
     // Construct file path
-    snprintf(out_dir, 256, "%s/%s/%s", arc->arc_path, "logs", first_four);
-    snprintf(out_file, 256, "%s/%s/%s/%s", arc->arc_path, "logs", first_four, rest);
+    snprintf(out_dir, 4, "%s", first_four);
+    snprintf(out_file, 65, "%s/%s", first_four, rest);
 }

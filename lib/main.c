@@ -8,7 +8,7 @@
 
 int main(void) {
     Archive* arc = archive_init(".");
-    archive_doc(arc);
+    archive_doc(arc, "binitialcommit");
 
     int x = 5;
 }
